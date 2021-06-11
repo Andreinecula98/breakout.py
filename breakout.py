@@ -2,7 +2,9 @@ import pygame
 from pygame.locals import *
 
 pygame.init()
-
+pygame.joystick.init()
+joysticks = []
+motion = [0, 0]
 screen_width = 600
 screen_height = 600
 
@@ -96,13 +98,14 @@ class paddle:
     def move(self):
         # reset movement direction
         self.direction = 0
-        key = pygame.key.get_pressed()
-        if key[pygame.K_LEFT] and self.rect.left > 0:
-            self.rect.x -= self.speed
-            self.direction = -1
-        if key[pygame.K_RIGHT] and self.rect.right < screen_width:
-            self.rect.x += self.speed
-            self.direction = 1
+        for event in pygame.event.get():
+            if event.type == pygame.JOYAXISMOTION:
+                if event.value < 0 and self.rect.left > 0:
+                    self.rect.x += event.value * self.speed
+                    self.direction = -1
+                if event.value > 0.5 and self.rect.right < screen_width:
+                    self.rect.x += event.value * self.speed
+                    self.direction = 1
 
     def draw(self):
         pygame.draw.rect(screen, paddle_col, self.rect)
@@ -221,6 +224,12 @@ player_paddle = paddle()
 # create ball
 ball = game_ball(player_paddle.x + (player_paddle.width // 2), player_paddle.y - player_paddle.height)
 
+for i in range(pygame.joystick.get_count()):
+    joysticks.append((pygame.joystick.Joystick(i)))
+    joysticks[-1].init()
+if abs(motion[0]) < 0.1:
+    motion[0] = 0
+
 run = True
 while run:
 
@@ -253,13 +262,14 @@ while run:
             draw_text('CLICK "A" TO START', font, text_col, screen_width // 2 - 150, screen_height // 2 + 100)
 
     for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            run = False
-        if event.type == pygame.MOUSEBUTTONDOWN and live_ball == False:
-            live_ball = True
-            ball.reset(player_paddle.x + (player_paddle.width // 2), player_paddle.y - player_paddle.height)
-            player_paddle.reset()
-            wall.create_wall()
+        if event.type == pygame.JOYBUTTONDOWN:
+            if event.button == 10:
+                run = False
+            if event.button == 0 and live_ball == False:
+                live_ball = True
+                ball.reset(player_paddle.x + (player_paddle.width // 2), player_paddle.y - player_paddle.height)
+                player_paddle.reset()
+                wall.create_wall()
 
     pygame.display.update()
 
